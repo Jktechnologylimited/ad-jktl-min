@@ -32,9 +32,15 @@ export default function ClientsPage() {
 
   return (
     <div style={{ padding:"clamp(20px,4vw,36px)", fontFamily:"'Plus Jakarta Sans',sans-serif", maxWidth:1400 }}>
-      <div style={{ marginBottom:24 }}>
-        <h1 style={{ fontSize:"clamp(1.1rem,3vw,1.4rem)", fontWeight:700, color:"#fff", marginBottom:2 }}>Clients</h1>
-        <p style={{ fontSize:"0.82rem", color:"rgba(226,232,240,0.4)" }}>All organisations on the Desk platform</p>
+      <div style={{ marginBottom:24, display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
+        <div>
+          <h1 style={{ fontSize:"clamp(1.1rem,3vw,1.4rem)", fontWeight:700, color:"#fff", marginBottom:2 }}>Clients</h1>
+          <p style={{ fontSize:"0.82rem", color:"rgba(226,232,240,0.4)" }}>All organisations on the Desk platform</p>
+        </div>
+        <a href="/dashboard/clients/add"
+          style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"10px 20px", borderRadius:8, fontWeight:700, fontSize:"0.78rem", textTransform:"uppercase", letterSpacing:"0.08em", background:"#C9A84C", color:"#060E2A", textDecoration:"none", whiteSpace:"nowrap" }}>
+          + Add Existing Client
+        </a>
       </div>
       <div style={{ display:"flex", gap:12, marginBottom:16, flexWrap:"wrap" }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search clients..."
