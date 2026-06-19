@@ -32,7 +32,7 @@ const PRODUCTS = [
 const PLANS = ["standard","pro","enterprise"];
 
 export default function SettingsPage() {
-  //  Add client form 
+  // ── Add client form ────────────────────────────────────────────────────────
   const [product,     setProduct]     = useState("faithdesk");
   const [plan,        setPlan]        = useState("pro");
   const [orgName,     setOrgName]     = useState("");
@@ -43,7 +43,6 @@ export default function SettingsPage() {
   const [setupFee,    setSetupFee]    = useState("300000");
   const [monthlyFee,  setMonthlyFee]  = useState("50000");
   const [address,     setAddress]     = useState("");
-  const [customDomain,setCustomDomain]= useState("");
   const [notes,       setNotes]       = useState("");
   const [saving,      setSaving]      = useState(false);
   const [msg,         setMsg]         = useState<{type:"ok"|"err";text:string}|null>(null);
@@ -58,34 +57,28 @@ export default function SettingsPage() {
   // Auto-generate subdomain from org name
   function handleOrgNameChange(name: string) {
     setOrgName(name);
-    // Always auto-fill subdomain from org name unless user has manually edited it
-    const autoSub = name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 30);
-    setSubdomain(autoSub);
+    if (!subdomain || subdomain === orgName.toLowerCase().replace(/[^a-z0-9]/g,"")) {
+      setSubdomain(name.toLowerCase().replace(/[^a-z0-9]/g,""));
+    }
   }
 
   async function handleAddClient() {
-    const trimmedOrgName   = orgName.trim();
-    const trimmedEmail     = ownerEmail.trim();
-    const trimmedSubdomain = subdomain.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
-
-    if (!trimmedOrgName)   { setMsg({ type:"err", text:"Organisation name is required" }); return; }
-    if (!trimmedEmail)     { setMsg({ type:"err", text:"Owner email is required" }); return; }
-    if (!trimmedSubdomain) { setMsg({ type:"err", text:"Subdomain is required -- it auto-fills from the org name" }); return; }
-    if (!product)          { setMsg({ type:"err", text:"Please select a product" }); return; }
-
+    if (!orgName || !ownerEmail || !subdomain) {
+      setMsg({ type:"err", text:"Organisation name, email and subdomain are required" }); return;
+    }
     setSaving(true); setMsg(null);
     try {
       const res = await fetch("/api/clients/add", {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ product, plan, orgName: trimmedOrgName, ownerName: ownerName.trim(), ownerEmail: trimmedEmail, ownerPhone: ownerPhone.trim(), subdomain: trimmedSubdomain, customDomain: customDomain.trim(), setupFee, monthlyFee, address: address.trim(), notes: notes.trim() }),
+        body: JSON.stringify({ product, plan, orgName, ownerName, ownerEmail, ownerPhone, subdomain, setupFee, monthlyFee, address, notes }),
       });
       const data = await res.json();
       if (!res.ok) { setMsg({ type:"err", text:data.error||"Failed to add client" }); return; }
       setMsg({ type:"ok", text:`Client added successfully. ID: ${data.id}` });
       // Clear form
       setOrgName(""); setOwnerName(""); setOwnerEmail(""); setOwnerPhone("");
-      setSubdomain(""); setCustomDomain(""); setAddress(""); setNotes("");
+      setSubdomain(""); setAddress(""); setNotes("");
     } catch { setMsg({ type:"err", text:"Network error. Please try again." }); }
     finally { setSaving(false); }
   }
@@ -99,7 +92,7 @@ export default function SettingsPage() {
         <p style={{ fontSize:"0.82rem", color:"rgba(226,232,240,0.4)" }}>Manually add clients and manage platform configuration.</p>
       </div>
 
-      {/*  ADD CLIENT MANUALLY  */}
+      {/* ── ADD CLIENT MANUALLY ─────────────────────────────────────────── */}
       <div style={cardS}>
         <h2 style={{ fontWeight:700, color:"#fff", fontSize:"1rem", marginBottom:4 }}>Add Client Manually</h2>
         <p style={{ fontSize:"0.78rem", color:"rgba(226,232,240,0.4)", marginBottom:24, lineHeight:1.6 }}>
@@ -179,11 +172,6 @@ export default function SettingsPage() {
             <label style={labelS}>Address / City</label>
             <input style={inputS} value={address} onChange={e => setAddress(e.target.value)} placeholder="Lagos, Nigeria" />
           </div>
-          <div>
-            <label style={labelS}>Custom Domain (if on Pro plan)</label>
-            <input style={inputS} value={customDomain} onChange={e => setCustomDomain(e.target.value)} placeholder="heavenshospitality.org" />
-            <p style={{ fontSize:"0.65rem", color:"rgba(226,232,240,0.3)", marginTop:4 }}>Leave blank if using subdomain only. Enter without https://</p>
-          </div>
         </div>
 
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:16 }}>
@@ -214,8 +202,7 @@ export default function SettingsPage() {
               { l:"Product",   v: PRODUCTS.find(p=>p.value===product)?.label || product },
               { l:"Plan",      v: plan.charAt(0).toUpperCase()+plan.slice(1) },
               { l:"Org",       v: orgName || "--" },
-              { l:"Subdomain",     v: subdomain ? subdomain+".jktl.com.ng" : "--" },
-              { l:"Custom Domain", v: customDomain || "None" },
+              { l:"Subdomain", v: subdomain ? subdomain+".jktl.com.ng" : "--" },
               { l:"Setup Fee", v: fmtN(setupFee) },
               { l:"Monthly",   v: fmtN(monthlyFee)+"/mo" },
             ].map(s => (
@@ -242,7 +229,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/*  PLATFORM CONFIG  */}
+      {/* ── PLATFORM CONFIG ──────────────────────────────────────────────── */}
       <div style={cardS}>
         <h2 style={{ fontWeight:700, color:"#fff", fontSize:"1rem", marginBottom:4 }}>Platform URLs</h2>
         <p style={{ fontSize:"0.78rem", color:"rgba(226,232,240,0.4)", marginBottom:16 }}>Quick reference for all JKTL platform URLs.</p>
@@ -267,7 +254,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/*  COMMISSION RATES  */}
+      {/* ── COMMISSION RATES ─────────────────────────────────────────────── */}
       <div style={cardS}>
         <h2 style={{ fontWeight:700, color:"#fff", fontSize:"1rem", marginBottom:4 }}>Affiliate Commission Rates</h2>
         <p style={{ fontSize:"0.78rem", color:"rgba(226,232,240,0.4)", marginBottom:16 }}>Current rates (edit in <span style={{ fontFamily:mono, fontSize:"0.7rem", color:"#C9A84C" }}>lib/affiliate-offers.ts</span> to change).</p>

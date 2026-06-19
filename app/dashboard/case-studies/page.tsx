@@ -1,0 +1,124 @@
+"use client";
+import { useState, useEffect, useCallback } from "react";
+import { inputStyle, selectStyle, labelStyle, btnGold, btnGhost, sans, mono, MarkdownEditor } from "../Editor";
+
+type CaseStudy = {
+  id: string; client_name: string; product: string; slug: string; cover_image: string;
+  challenge: string; solution: string; results: string; status: string; published_at: string | null;
+};
+const blank = { client_name: "", product: "", slug: "", cover_image: "", challenge: "", solution: "", results: "", status: "draft" };
+const td: React.CSSProperties = { padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,0.04)", color: "rgba(226,232,240,0.75)", verticalAlign: "top" };
+const th: React.CSSProperties = { padding: "9px 14px", textAlign: "left", fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(226,232,240,0.3)", borderBottom: "1px solid rgba(255,255,255,0.07)", background: "rgba(0,0,0,0.15)", whiteSpace: "nowrap" };
+const badge = (pub: boolean): React.CSSProperties => ({ display: "inline-flex", padding: "2px 8px", borderRadius: 4, fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", background: pub ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)", color: pub ? "#34D399" : "#FCD34D" });
+function fmtDate(d: string | null) { return d ? new Date(d).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" }) : "—"; }
+function slugify(s: string) { return s.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-"); }
+
+export default function CaseStudiesPage() {
+  const [items, setItems] = useState<CaseStudy[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<(typeof blank & { id?: string; slugTouched?: boolean }) | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const load = useCallback(() => {
+    setLoading(true);
+    fetch("/api/case-studies").then((r) => r.json()).then((d) => { setItems(d.caseStudies || []); setLoading(false); });
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  function set(k: string, v: string) { setEditing((e) => e ? { ...e, [k]: v } : e); }
+  function setClient(v: string) {
+    setEditing((e) => e ? { ...e, client_name: v, slug: e.slugTouched ? e.slug : slugify(v) } : e);
+  }
+
+  async function save() {
+    if (!editing) return;
+    setMsg("");
+    if (!editing.client_name.trim() || !editing.slug.trim()) { setMsg("Client name and slug are required."); return; }
+    setSaving(true);
+    const url = editing.id ? `/api/case-studies/${editing.id}` : "/api/case-studies";
+    const method = editing.id ? "PATCH" : "POST";
+    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(editing) });
+    const data = await res.json();
+    setSaving(false);
+    if (!res.ok) { setMsg(data.error || "Failed to save."); return; }
+    setEditing(null); load();
+  }
+
+  async function remove(id: string) {
+    if (!confirm("Delete this case study? This cannot be undone.")) return;
+    await fetch(`/api/case-studies/${id}`, { method: "DELETE" });
+    load();
+  }
+
+  return (
+    <div style={{ padding: "clamp(20px,4vw,36px)", fontFamily: sans, maxWidth: 1200 }}>
+      <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: "clamp(1.1rem,3vw,1.4rem)", fontWeight: 700, color: "#fff", marginBottom: 2 }}>Case Studies</h1>
+          <p style={{ fontSize: "0.82rem", color: "rgba(226,232,240,0.4)" }}>Publish client results to jktl.com.ng/case-studies</p>
+        </div>
+        <button style={btnGold} onClick={() => { setEditing({ ...blank }); setMsg(""); }}>+ New Case Study</button>
+      </div>
+
+      {editing && (
+        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: 24, marginBottom: 24, display: "grid", gap: 16 }}>
+          <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#fff" }}>{editing.id ? "Edit Case Study" : "New Case Study"}</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }} className="grid-cols-1 md:grid-cols-2">
+            <div><label style={labelStyle}>Client name *</label><input style={inputStyle} value={editing.client_name} onChange={(e) => setClient(e.target.value)} /></div>
+            <div><label style={labelStyle}>Product / Service</label><input style={inputStyle} value={editing.product} onChange={(e) => set("product", e.target.value)} /></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }} className="grid-cols-1 md:grid-cols-2">
+            <div>
+              <label style={labelStyle}>Slug * <span style={{ color: "rgba(226,232,240,0.25)", fontFamily: mono }}>/case-studies/{editing.slug || "..."}</span></label>
+              <input style={inputStyle} value={editing.slug} onChange={(e) => setEditing((p) => p ? { ...p, slug: slugify(e.target.value), slugTouched: true } : p)} />
+            </div>
+            <div>
+              <label style={labelStyle}>Status</label>
+              <select style={selectStyle} value={editing.status} onChange={(e) => set("status", e.target.value)}>
+                <option value="draft">Draft</option><option value="published">Published</option>
+              </select>
+            </div>
+          </div>
+          <div><label style={labelStyle}>Cover image URL</label><input style={inputStyle} placeholder="https://..." value={editing.cover_image} onChange={(e) => set("cover_image", e.target.value)} /></div>
+          <div><label style={labelStyle}>Challenge (markdown)</label><MarkdownEditor value={editing.challenge} onChange={(v) => set("challenge", v)} /></div>
+          <div><label style={labelStyle}>Solution (markdown)</label><MarkdownEditor value={editing.solution} onChange={(v) => set("solution", v)} /></div>
+          <div><label style={labelStyle}>Results (markdown)</label><MarkdownEditor value={editing.results} onChange={(v) => set("results", v)} /></div>
+          {msg && <p style={{ color: "#F87171", fontSize: "0.82rem" }}>{msg}</p>}
+          <div style={{ display: "flex", gap: 12 }}>
+            <button style={btnGold} onClick={save} disabled={saving}>{saving ? "Saving..." : "Save Case Study"}</button>
+            <button style={btnGhost} onClick={() => setEditing(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem", fontFamily: sans }}>
+            <thead><tr><th style={th}>Client</th><th style={th}>Product</th><th style={th}>Status</th><th style={th}>Published</th><th style={th}></th></tr></thead>
+            <tbody>
+              {loading ? <tr><td colSpan={5} style={{ ...td, textAlign: "center", padding: 32, fontStyle: "italic", color: "rgba(226,232,240,0.3)" }}>Loading...</td></tr>
+              : items.length === 0 ? <tr><td colSpan={5} style={{ ...td, textAlign: "center", padding: 32, fontStyle: "italic", color: "rgba(226,232,240,0.3)" }}>No case studies yet</td></tr>
+              : items.map((c) => (
+                <tr key={c.id}>
+                  <td style={{ ...td }}>
+                    <p style={{ fontWeight: 600, color: "#fff" }}>{c.client_name}</p>
+                    <p style={{ fontSize: "0.7rem", color: "rgba(226,232,240,0.35)", fontFamily: mono, marginTop: 2 }}>/case-studies/{c.slug}</p>
+                  </td>
+                  <td style={td}>{c.product || "—"}</td>
+                  <td style={td}><span style={badge(c.status === "published")}>{c.status}</span></td>
+                  <td style={{ ...td, fontSize: "0.75rem" }}>{fmtDate(c.published_at)}</td>
+                  <td style={{ ...td, whiteSpace: "nowrap" }}>
+                    <button onClick={() => { setEditing({ id: c.id, client_name: c.client_name, product: c.product || "", slug: c.slug, cover_image: c.cover_image || "", challenge: c.challenge || "", solution: c.solution || "", results: c.results || "", status: c.status, slugTouched: true }); setMsg(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(226,232,240,0.6)", fontSize: "0.78rem", marginRight: 10 }}>Edit</button>
+                    <button onClick={() => remove(c.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(239,68,68,0.6)", fontSize: "0.78rem" }}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
