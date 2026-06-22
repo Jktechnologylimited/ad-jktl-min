@@ -30,6 +30,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         features = ${JSON.stringify(Array.isArray(b.features) ? b.features : [])},
         domains = ${JSON.stringify(Array.isArray(b.domains) ? b.domains : [])},
         use_cases = ${JSON.stringify(Array.isArray(b.use_cases) ? b.use_cases : [])},
+        setup_price = ${b.setup_price === "" || b.setup_price == null ? null : Number(b.setup_price)},
+        monthly_price = ${b.monthly_price === "" || b.monthly_price == null ? null : Number(b.monthly_price)},
+        price_note = ${b.price_note || ""},
         sort_order = ${Number(b.sort_order) || 0}
       WHERE id = ${id}
     `;

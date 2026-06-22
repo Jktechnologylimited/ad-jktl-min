@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const sans = "'Plus Jakarta Sans', sans-serif";
@@ -25,6 +25,13 @@ const selectStyle: React.CSSProperties = {
   borderRadius: 8, color: "#fff", fontSize: "0.88rem",
   fontFamily: sans, outline: "none",
 };
+
+type ProductOpt = { id: string; label: string; color: string; monthly: string };
+const DEFAULT_PRODUCTS: ProductOpt[] = [
+  { id:"faithdesk",  label:"FaithDesk",  color:"#8B5CF6", monthly:"50000" },
+  { id:"detaildesk", label:"DetailDesk", color:"#F59E0B", monthly:"30000" },
+  { id:"schooldesk", label:"SchoolDesk", color:"#10B981", monthly:"25000" },
+];
 
 export default function AddClientPage() {
   const router = useRouter();
@@ -73,11 +80,28 @@ export default function AddClientPage() {
     }
   }
 
-  const PRODUCTS = [
-    { id:"faithdesk",  label:"FaithDesk",  color:"#8B5CF6", monthly:"50000" },
-    { id:"detaildesk", label:"DetailDesk", color:"#F59E0B", monthly:"30000" },
-    { id:"schooldesk", label:"SchoolDesk", color:"#10B981", monthly:"25000" },
-  ];
+  const [PRODUCTS, setProducts] = useState<ProductOpt[]>(DEFAULT_PRODUCTS);
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/desk-products").then(r => r.json()).catch(() => ({ products: [] })),
+      fetch("/api/agency-services").then(r => r.json()).catch(() => ({ services: [] })),
+    ]).then(([dp, ag]) => {
+      const products: ProductOpt[] = Array.isArray(dp.products) ? dp.products.map((p: { id?: string; product_key?: string; name?: string; color?: string; monthly_price?: number | null }) => ({
+        id: p.product_key || p.id || "",
+        label: p.name || p.product_key || "",
+        color: p.color || "#8B5CF6",
+        monthly: p.monthly_price != null ? String(p.monthly_price) : "0",
+      })) : [];
+      const services: ProductOpt[] = Array.isArray(ag.services) ? ag.services.map((s: { slug?: string; label?: string; color?: string; monthly_price?: number | null }) => ({
+        id: s.slug || "",
+        label: `${s.label || s.slug || ""} — Service`,
+        color: s.color || "#0EA5E9",
+        monthly: s.monthly_price != null ? String(s.monthly_price) : "0",
+      })) : [];
+      const merged = [...products, ...services].filter(o => o.id);
+      if (merged.length) setProducts(merged);
+    });
+  }, []);
 
   return (
     <div style={{ padding:"clamp(20px,4vw,36px)", fontFamily:sans, maxWidth:720 }}>

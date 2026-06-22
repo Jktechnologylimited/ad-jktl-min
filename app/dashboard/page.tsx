@@ -34,13 +34,40 @@ function StatCard({ label, value, sub, color, accent }: { label:string; value:st
 export default function DashboardPage() {
   const [data, setData] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<string | null>(null);
+  const [name, setName] = useState<string>("");
 
   useEffect(() => {
-    fetch("/api/analytics/summary")
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+    fetch("/api/me").then(r => r.json()).then(m => {
+      setRole(m.role || null);
+      setName(m.name || "");
+      if (m.role === "owner") {
+        fetch("/api/analytics/summary")
+          .then(r => r.json())
+          .then(d => { setData(d); setLoading(false); })
+          .catch(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
+    }).catch(() => setLoading(false));
   }, []);
+
+  if (!loading && role && role !== "owner") return (
+    <div style={{ padding: "clamp(20px,4vw,40px)", fontFamily: sans, maxWidth: 640 }}>
+      <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#fff", marginBottom: 6 }}>Welcome{name ? `, ${name.split(" ")[0]}` : ""}</h1>
+      <p style={{ fontSize: "0.88rem", color: "rgba(226,232,240,0.5)", marginBottom: 24, lineHeight: 1.6 }}>Here&apos;s where you work from. Check your tasks and targets, and follow up on incoming inquiries.</p>
+      <div style={{ display: "grid", gap: 12 }}>
+        <Link href="/dashboard/my-work" style={{ textDecoration: "none", padding: "18px 20px", borderRadius: 12, background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.25)" }}>
+          <p style={{ fontSize: "0.95rem", fontWeight: 700, color: "#C9A84C" }}>My Work →</p>
+          <p style={{ fontSize: "0.8rem", color: "rgba(226,232,240,0.5)" }}>Your tasks and targets</p>
+        </Link>
+        <Link href="/dashboard/inquiries" style={{ textDecoration: "none", padding: "18px 20px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}>
+          <p style={{ fontSize: "0.95rem", fontWeight: 700, color: "#fff" }}>Inquiries →</p>
+          <p style={{ fontSize: "0.8rem", color: "rgba(226,232,240,0.5)" }}>Incoming leads to follow up</p>
+        </Link>
+      </div>
+    </div>
+  );
 
   if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"60vh" }}>

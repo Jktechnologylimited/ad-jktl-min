@@ -5,9 +5,18 @@ import bcrypt from "bcryptjs";
 const JWT_SECRET = process.env.JWT_SECRET || "jktl-admin-dev-secret";
 export const COOKIE_NAME = "jktl_admin_token";
 
+export type Role = "owner" | "bdr";
+
 export interface AdminSession {
   email: string;
-  role: "owner";
+  role: Role;
+  name?: string;
+  staffId?: string;
+}
+
+// Roles allowed to see sensitive business data (clients, billing, affiliates, etc.)
+export function isOwner(session: AdminSession | null): boolean {
+  return session?.role === "owner";
 }
 
 export function signToken(payload: AdminSession): string {
@@ -36,4 +45,10 @@ export async function checkPassword(plain: string): Promise<boolean> {
     return plain === process.env.ADMIN_PASSWORD;
   }
   return bcrypt.compare(plain, hash);
+}
+
+// For API routes: returns the session if owner, else null (caller returns 403).
+export async function requireOwnerSession(): Promise<AdminSession | null> {
+  const s = await getSession();
+  return s && s.role === "owner" ? s : null;
 }

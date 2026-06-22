@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const rows = await sql`
       INSERT INTO desk_products
         (product_key, name, tagline, description, status, color, slug, href, get_started_href,
-         icon, features, domains, use_cases, sort_order)
+         icon, features, domains, use_cases, setup_price, monthly_price, price_note, sort_order)
       VALUES
         (${productKey}, ${name}, ${b.tagline || ""}, ${b.description || ""},
          ${b.status === "coming-soon" ? "coming-soon" : "live"}, ${b.color || "#8B5CF6"}, ${slug},
@@ -45,7 +45,9 @@ export async function POST(req: NextRequest) {
          ${JSON.stringify(Array.isArray(b.features) ? b.features : [])},
          ${JSON.stringify(Array.isArray(b.domains) ? b.domains : [])},
          ${JSON.stringify(Array.isArray(b.use_cases) ? b.use_cases : [])},
-         ${Number(b.sort_order) || 0})
+         ${b.setup_price === "" || b.setup_price == null ? null : Number(b.setup_price)},
+         ${b.monthly_price === "" || b.monthly_price == null ? null : Number(b.monthly_price)},
+         ${b.price_note || ""}, ${Number(b.sort_order) || 0})
       RETURNING id
     `;
     return NextResponse.json({ ok: true, id: rows[0].id });

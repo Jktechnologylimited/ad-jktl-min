@@ -8,32 +8,53 @@ const NAV = [
   { section: "Overview" },
   { href: "/dashboard",               label: "Dashboard"   },
   { section: "Business" },
-  { href: "/dashboard/inquiries",      label: "Inquiries"   },
+  { href: "/dashboard/inquiries",      label: "Inquiries"   , all: true },
+  { href: "/dashboard/my-work",        label: "My Work"     , all: true },
   { href: "/dashboard/clients",       label: "Clients"     },
   { href: "/dashboard/onboarding",    label: "Onboarding"  },
   { href: "/dashboard/subscriptions", label: "Subscriptions"},
   { section: "Content" },
+  { href: "/dashboard/homepage",      label: "Homepage"    },
   { href: "/dashboard/desk-products",   label: "Desk Products"  },
   { href: "/dashboard/agency-services", label: "Agency Services"},
+  { href: "/dashboard/videos",        label: "Watch Videos"},
+  { href: "/dashboard/testimonials",  label: "Testimonials"},
   { href: "/dashboard/jobs",          label: "Jobs"        },
   { href: "/dashboard/blog",          label: "Blog & News" },
   { href: "/dashboard/case-studies",  label: "Case Studies"},
   { section: "Growth" },
   { href: "/dashboard/affiliates",    label: "Affiliates"  },
   { href: "/dashboard/payouts",       label: "Payouts"     },
+  { section: "Team" },
+  { href: "/dashboard/team",          label: "Team"        },
   { section: "Data" },
   { href: "/dashboard/analytics",     label: "Analytics"   },
   { href: "/dashboard/settings",      label: "Settings"    },
 ];
 
+// Sections to drop entirely for non-owner staff
+const OWNER_ONLY_SECTIONS = ["Content", "Growth", "Team", "Data"];
+
 const mono = "'JetBrains Mono', monospace";
 const sans = "'Plus Jakarta Sans', sans-serif";
 const SIDEBAR_W = 240;
 
-export default function AdminShell({ children }: { children: React.ReactNode }) {
+export default function AdminShell({ children, role = "owner", name }: { children: React.ReactNode; role?: string; name?: string }) {
   const pathname  = usePathname();
   const router    = useRouter();
   const [open, setOpen] = useState(false);
+
+  // Non-owner staff: drop sensitive sections, keep only Dashboard + items flagged `all`.
+  const rawNav = role === "owner" ? NAV : NAV.filter((item) => {
+    if ("section" in item) return !OWNER_ONLY_SECTIONS.includes(item.section as string);
+    return item.href === "/dashboard" || (item as { all?: boolean }).all === true;
+  });
+  // Remove any section header left with no items under it
+  const visibleNav = rawNav.filter((item, i) => {
+    if (!("section" in item)) return true;
+    const next = rawNav[i + 1];
+    return next && !("section" in next);
+  });
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -47,13 +68,13 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         <Image src="/logo.png" alt="JKTL" width={34} height={34} style={{ objectFit: "contain", flexShrink: 0 }} />
         <div>
           <p style={{ fontFamily: sans, fontWeight: 800, fontSize: "0.82rem", color: "#fff", lineHeight: 1 }}>Command Centre</p>
-          <p style={{ fontFamily: mono, fontSize: "0.5rem", color: "rgba(201,168,76,0.7)", letterSpacing: "0.12em", marginTop: 3 }}>JKTL INTERNAL</p>
+          <p style={{ fontFamily: mono, fontSize: "0.5rem", color: "rgba(201,168,76,0.7)", letterSpacing: "0.12em", marginTop: 3 }}>{role === "owner" ? "JKTL INTERNAL" : "STAFF"}</p>
         </div>
       </div>
 
       {/* Nav */}
       <nav style={{ flex: 1, overflowY: "auto", padding: "12px 10px" }}>
-        {NAV.map((item, i) => {
+        {visibleNav.map((item, i) => {
           if ("section" in item) return (
             <p key={i} style={{ fontFamily: mono, fontSize: "0.55rem", letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "rgba(226,232,240,0.2)", padding: "14px 10px 6px" }}>
               {item.section}
@@ -79,6 +100,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           style={{ display: "flex", alignItems: "center", padding: "8px 12px", borderRadius: 6, fontSize: "0.75rem", color: "rgba(226,232,240,0.4)", textDecoration: "none", marginBottom: 4 }}>
           jktl.com.ng ↗
         </a>
+        <div style={{ padding: "6px 12px", marginBottom: 2 }}>
+          <p style={{ fontSize: "0.74rem", fontWeight: 600, color: "rgba(226,232,240,0.7)", fontFamily: sans }}>{name || "Signed in"}</p>
+          <p style={{ fontSize: "0.6rem", color: "rgba(201,168,76,0.7)", fontFamily: mono, letterSpacing: "0.08em" }}>{role === "owner" ? "OWNER" : "STAFF"}</p>
+        </div>
         <button onClick={handleLogout}
           style={{ display: "flex", alignItems: "center", width: "100%", padding: "8px 12px", borderRadius: 6, fontSize: "0.75rem", fontWeight: 600, background: "none", border: "none", cursor: "pointer", color: "rgba(239,68,68,0.6)", textAlign: "left" as const }}>
           Sign Out

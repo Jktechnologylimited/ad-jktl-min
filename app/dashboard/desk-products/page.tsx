@@ -6,11 +6,13 @@ type Product = {
   id: string; product_key: string; name: string; tagline: string; description: string;
   status: string; color: string; slug: string; href: string; get_started_href: string; icon: string;
   features: string[]; domains: Domain[]; use_cases: string[]; sort_order: number;
+  setup_price: number | null; monthly_price: number | null; price_note: string;
 };
 const blank = {
   name: "", slug: "", tagline: "", description: "", status: "live", color: "#8B5CF6",
   href: "", get_started_href: "", icon: "", features: [] as string[], domains: [] as Domain[],
   use_cases: [] as string[], sort_order: 0,
+  setup_price: "" as number | string, monthly_price: "" as number | string, price_note: "",
 };
 const td: React.CSSProperties = { padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,0.04)", color: "rgba(226,232,240,0.75)", verticalAlign: "top" };
 const th: React.CSSProperties = { padding: "9px 14px", textAlign: "left", fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(226,232,240,0.3)", borderBottom: "1px solid rgba(255,255,255,0.07)", background: "rgba(0,0,0,0.15)", whiteSpace: "nowrap" };
@@ -83,6 +85,11 @@ export default function DeskProductsPage() {
             <div><label style={labelStyle}>Product page link</label><input style={inputStyle} value={editing.href} onChange={(e) => set("href", e.target.value)} /></div>
           </div>
           <div><label style={labelStyle}>Get-started link</label><input style={inputStyle} value={editing.get_started_href} onChange={(e) => set("get_started_href", e.target.value)} /></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.4fr", gap: 14 }}>
+            <div><label style={labelStyle}>Setup price (₦)</label><input style={inputStyle} type="number" placeholder="e.g. 200000" value={editing.setup_price} onChange={(e) => set("setup_price", e.target.value)} /></div>
+            <div><label style={labelStyle}>Monthly price (₦)</label><input style={inputStyle} type="number" placeholder="e.g. 30000" value={editing.monthly_price} onChange={(e) => set("monthly_price", e.target.value)} /></div>
+            <div><label style={labelStyle}>Price note</label><input style={inputStyle} placeholder="e.g. Waitlist — lock in pricing" value={editing.price_note} onChange={(e) => set("price_note", e.target.value)} /></div>
+          </div>
           <div><label style={labelStyle}>Features</label><ListEditor items={editing.features} onChange={(v) => set("features", v)} placeholder="Add feature" /></div>
           <div><label style={labelStyle}>Domains</label><DomainsEditor items={editing.domains} onChange={(v) => set("domains", v)} /></div>
           <div><label style={labelStyle}>Use cases</label><ListEditor items={editing.use_cases} onChange={(v) => set("use_cases", v)} placeholder="Add use case" /></div>
@@ -112,7 +119,7 @@ export default function DeskProductsPage() {
                   <td style={td}>{p.tagline || "—"}</td>
                   <td style={td}><span style={badge(p.status === "live")}>{p.status}</span></td>
                   <td style={{ ...td, whiteSpace: "nowrap" }}>
-                    <button onClick={() => { setEditing({ ...blank, ...p, features: p.features || [], domains: p.domains || [], use_cases: p.use_cases || [] }); setMsg(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                    <button onClick={() => { setEditing({ ...blank, ...p, features: p.features || [], domains: p.domains || [], use_cases: p.use_cases || [], setup_price: p.setup_price ?? "", monthly_price: p.monthly_price ?? "", price_note: p.price_note || "" }); setMsg(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                       style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(226,232,240,0.6)", fontSize: "0.78rem", marginRight: 10 }}>Edit</button>
                     <button onClick={() => remove(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(239,68,68,0.6)", fontSize: "0.78rem" }}>Delete</button>
                   </td>
