@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerSession } from "@/lib/auth";
+import { isValidRole } from "@/lib/roles";
 import { sql } from "@/lib/db";
 import bcrypt from "bcryptjs";
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const b = await req.json();
     if (typeof b.active === "boolean") await sql`UPDATE staff SET active = ${b.active} WHERE id = ${id}`;
     if (b.name) await sql`UPDATE staff SET name = ${String(b.name).trim()} WHERE id = ${id}`;
+    if (b.role && isValidRole(b.role)) await sql`UPDATE staff SET role = ${b.role} WHERE id = ${id}`;
     if (b.phone !== undefined) await sql`UPDATE staff SET phone = ${b.phone || ""} WHERE id = ${id}`;
     if (b.password) {
       if (String(b.password).length < 8) return NextResponse.json({ error: "Password must be 8+ chars" }, { status: 400 });

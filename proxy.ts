@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { roleAllowsPath } from "@/lib/roles";
 
 const JWT_SECRET = process.env.JWT_SECRET || "jktl-admin-dev-secret";
 const secret = new TextEncoder().encode(JWT_SECRET);
-
-// Paths a non-owner (BDR / sales rep / marketer) may reach. Everything else
-// under /dashboard or /api is owner-only. Deny-by-default keeps sensitive data safe.
-const BDR_PAGE_PREFIXES = ["/dashboard/inquiries", "/dashboard/my-work"];
-const BDR_API_PREFIXES = ["/api/auth", "/api/inquiries", "/api/tasks", "/api/targets", "/api/me"];
-
-function bdrAllowed(path: string): boolean {
-  if (path === "/dashboard") return true;
-  if (path.startsWith("/api")) return BDR_API_PREFIXES.some((p) => path.startsWith(p));
-  return BDR_PAGE_PREFIXES.some((p) => path.startsWith(p));
-}
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -41,8 +31,8 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Owner: full access. Non-owner: allowlist only.
-  if (role !== "owner" && !bdrAllowed(pathname)) {
+  // Authenticated but role not allowed on this path -> deny by default
+  if (!roleAllowsPath(role, pathname)) {
     if (isApi) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     const url = req.nextUrl.clone();
     url.pathname = "/dashboard";

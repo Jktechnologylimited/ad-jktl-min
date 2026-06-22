@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { ROLES, roleLabel } from "@/lib/roles";
 
 const sans = "'Plus Jakarta Sans', sans-serif";
 const mono = "'JetBrains Mono', monospace";
@@ -22,6 +23,8 @@ export default function TeamPage() {
   const [msg, setMsg] = useState("");
 
   const [nf, setNf] = useState({ name: "", email: "", password: "", phone: "", role: "bdr" });
+  const [editing, setEditing] = useState<Staff | null>(null);
+  const [ef, setEf] = useState({ name: "", phone: "", role: "bdr", password: "" });
   const [tf, setTf] = useState({ title: "", description: "", due_date: "" });
   const [gf, setGf] = useState({ label: "", metric: "", target_value: "", period: "" });
 
@@ -43,6 +46,18 @@ export default function TeamPage() {
   }
   async function toggleActive(s: Staff) { await fetch(`/api/staff/${s.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: !s.active }) }); loadStaff(); }
   async function delStaff(s: Staff) { if (!confirm(`Remove ${s.name}? Their tasks and targets are deleted too.`)) return; await fetch(`/api/staff/${s.id}`, { method: "DELETE" }); if (sel0?.id === s.id) setSel0(null); loadStaff(); }
+
+  function startEdit(s: Staff) { setEditing(s); setEf({ name: s.name, phone: s.phone || "", role: s.role, password: "" }); setMsg(""); }
+  async function saveEdit() {
+    if (!editing) return;
+    setMsg("");
+    const body: Record<string, unknown> = { name: ef.name.trim(), phone: ef.phone, role: ef.role };
+    if (ef.password) body.password = ef.password;
+    const res = await fetch(`/api/staff/${editing.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const d = await res.json();
+    if (!res.ok) { setMsg(d.error || "Failed to save"); return; }
+    setEditing(null); loadStaff();
+  }
 
   async function addTask() {
     if (!sel0 || !tf.title.trim()) return;
@@ -76,8 +91,7 @@ export default function TeamPage() {
               </div>
               <div><label style={lbl}>Role</label>
                 <select style={sel} value={nf.role} onChange={e => setNf({ ...nf, role: e.target.value })}>
-                  <option value="bdr">Business Dev / Sales (limited)</option>
-                  <option value="owner">Owner (full access)</option>
+                  {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
                 </select>
               </div>
               {msg && <p style={{ color: "#F87171", fontSize: "0.8rem" }}>{msg}</p>}
@@ -86,6 +100,30 @@ export default function TeamPage() {
             </div>
           </div>
 
+          {editing && (
+          <div style={card}>
+            <h2 style={{ fontSize: "0.95rem", fontWeight: 700, color: "#fff", marginBottom: 14 }}>Edit {editing.name}</h2>
+            <div style={{ display: "grid", gap: 10 }}>
+              <div><label style={lbl}>Full name</label><input style={input} value={ef.name} onChange={e => setEf({ ...ef, name: e.target.value })} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div><label style={lbl}>Phone</label><input style={input} value={ef.phone} onChange={e => setEf({ ...ef, phone: e.target.value })} /></div>
+                <div><label style={lbl}>Role</label>
+                  <select style={sel} value={ef.role} onChange={e => setEf({ ...ef, role: e.target.value })}>
+                    {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div><label style={lbl}>New password (optional)</label><input style={input} value={ef.password} onChange={e => setEf({ ...ef, password: e.target.value })} placeholder="leave blank to keep current" /></div>
+              <p style={{ fontSize: "0.7rem", color: "rgba(226,232,240,0.4)" }}>{ROLES.find(r => r.id === ef.role)?.desc}</p>
+              {msg && <p style={{ color: "#F87171", fontSize: "0.8rem" }}>{msg}</p>}
+              <div style={{ display: "flex", gap: 10 }}>
+                <button style={gold} onClick={saveEdit}>Save changes</button>
+                <button style={ghost} onClick={() => { setEditing(null); setMsg(""); }}>Cancel</button>
+              </div>
+            </div>
+          </div>
+          )}
+
           <div style={card}>
             <h2 style={{ fontSize: "0.95rem", fontWeight: 700, color: "#fff", marginBottom: 12 }}>Staff ({staff.length})</h2>
             <div style={{ display: "grid", gap: 8 }}>
@@ -93,11 +131,12 @@ export default function TeamPage() {
               {staff.map(s => (
                 <div key={s.id} onClick={() => setSel0(s)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 8, cursor: "pointer", border: `1px solid ${sel0?.id === s.id ? "rgba(201,168,76,0.5)" : "rgba(255,255,255,0.06)"}`, background: sel0?.id === s.id ? "rgba(201,168,76,0.08)" : "transparent" }}>
                   <div>
-                    <p style={{ fontWeight: 600, color: "#fff", fontSize: "0.85rem" }}>{s.name} {s.role === "owner" && <span style={{ color: "#C9A84C", fontSize: "0.66rem" }}>· owner</span>}</p>
+                    <p style={{ fontWeight: 600, color: "#fff", fontSize: "0.85rem" }}>{s.name} <span style={{ color: "#C9A84C", fontSize: "0.66rem" }}>· {roleLabel(s.role)}</span></p>
                     <p style={{ fontSize: "0.72rem", color: "rgba(226,232,240,0.4)" }}>{s.email}</p>
                   </div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }} onClick={e => e.stopPropagation()}>
                     <span style={{ fontSize: "0.66rem", color: s.active ? "#34D399" : "#F87171" }}>{s.active ? "active" : "disabled"}</span>
+                    <button onClick={() => startEdit(s)} style={{ ...ghost, padding: "5px 9px", fontSize: "0.68rem" }}>Edit</button>
                     <button onClick={() => toggleActive(s)} style={{ ...ghost, padding: "5px 9px", fontSize: "0.68rem" }}>{s.active ? "Disable" : "Enable"}</button>
                     <button onClick={() => delStaff(s)} style={{ background: "none", border: "none", color: "rgba(239,68,68,0.6)", cursor: "pointer", fontSize: "0.72rem" }}>Delete</button>
                   </div>

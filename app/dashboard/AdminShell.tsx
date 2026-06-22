@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+import { roleAllowsPath } from "@/lib/roles";
 
 const NAV = [
   { section: "Overview" },
@@ -32,8 +33,6 @@ const NAV = [
   { href: "/dashboard/settings",      label: "Settings"    },
 ];
 
-// Sections to drop entirely for non-owner staff
-const OWNER_ONLY_SECTIONS = ["Content", "Growth", "Team", "Data"];
 
 const mono = "'JetBrains Mono', monospace";
 const sans = "'Plus Jakarta Sans', sans-serif";
@@ -44,10 +43,10 @@ export default function AdminShell({ children, role = "owner", name }: { childre
   const router    = useRouter();
   const [open, setOpen] = useState(false);
 
-  // Non-owner staff: drop sensitive sections, keep only Dashboard + items flagged `all`.
+  // Non-owner staff: keep section headers (pruned below) + only items their role can access.
   const rawNav = role === "owner" ? NAV : NAV.filter((item) => {
-    if ("section" in item) return !OWNER_ONLY_SECTIONS.includes(item.section as string);
-    return item.href === "/dashboard" || (item as { all?: boolean }).all === true;
+    if ("section" in item) return true;
+    return roleAllowsPath(role, (item as { href: string }).href);
   });
   // Remove any section header left with no items under it
   const visibleNav = rawNav.filter((item, i) => {

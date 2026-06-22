@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 const JWT_SECRET = process.env.JWT_SECRET || "jktl-admin-dev-secret";
 export const COOKIE_NAME = "jktl_admin_token";
 
-export type Role = "owner" | "bdr";
+export type Role = import("./roles").RoleId;
 
 export interface AdminSession {
   email: string;

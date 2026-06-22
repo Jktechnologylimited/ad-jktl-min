@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerSession } from "@/lib/auth";
+import { isValidRole } from "@/lib/roles";
 import { sql } from "@/lib/db";
 import bcrypt from "bcryptjs";
 export const dynamic = "force-dynamic";
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     const exists = await sql`SELECT id FROM staff WHERE email = ${email} LIMIT 1`;
     if (exists.length) return NextResponse.json({ error: "A staff member with that email already exists" }, { status: 409 });
     const hash = await bcrypt.hash(password, 10);
-    const role = b.role === "owner" ? "owner" : "bdr";
+    const role = isValidRole(b.role) ? b.role : "bdr";
     const rows = await sql`INSERT INTO staff (name, email, password_hash, role, phone) VALUES (${name}, ${email}, ${hash}, ${role}, ${b.phone || ""}) RETURNING id`;
     return NextResponse.json({ ok: true, id: rows[0].id });
   } catch (err) {

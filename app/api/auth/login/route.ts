@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { signToken, checkPassword, COOKIE_NAME } from "@/lib/auth";
+import { isValidRole } from "@/lib/roles";
 import { sql } from "@/lib/db";
 import bcrypt from "bcryptjs";
 
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
       if (staff && staff.active && staff.password_hash) {
         const ok = await bcrypt.compare(String(password || ""), staff.password_hash);
         if (ok) {
-          const role = staff.role === "owner" ? "owner" : "bdr";
+          const role = isValidRole(staff.role) ? staff.role : "bdr";
           const token = signToken({ email: staff.email, role, name: staff.name, staffId: staff.id });
           return setCookie(token);
         }
