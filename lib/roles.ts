@@ -51,7 +51,7 @@ export const ROLES: RoleDef[] = [
 ];
 
 // Every signed-in non-owner staff member also gets these.
-const COMMON_PREFIXES = ["/dashboard/my-work", "/api/auth", "/api/me", "/api/tasks", "/api/targets"];
+const COMMON_PREFIXES = ["/dashboard/my-work", "/api/auth", "/api/me", "/api/tasks", "/api/targets", "/api/kpis"];
 
 export const ROLE_IDS = ROLES.map((r) => r.id);
 

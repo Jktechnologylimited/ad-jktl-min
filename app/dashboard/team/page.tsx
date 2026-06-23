@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { ROLES, roleLabel } from "@/lib/roles";
+import { kpiSetForRole, weeklyTotals, type KpiEntry } from "@/lib/kpis";
 
 const sans = "'Plus Jakarta Sans', sans-serif";
 const mono = "'JetBrains Mono', monospace";
@@ -10,6 +11,8 @@ const lbl: React.CSSProperties = { display: "block", fontSize: "0.62rem", fontWe
 const gold: React.CSSProperties = { padding: "9px 18px", borderRadius: 8, fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.07em", background: "#C9A84C", color: "#060E2A", border: "none", cursor: "pointer" };
 const ghost: React.CSSProperties = { padding: "8px 14px", borderRadius: 8, fontWeight: 600, fontSize: "0.74rem", background: "rgba(255,255,255,0.06)", color: "rgba(226,232,240,0.7)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer" };
 const card: React.CSSProperties = { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 20 };
+const kth: React.CSSProperties = { textAlign: "left", padding: "5px 7px", color: "rgba(226,232,240,0.3)", fontWeight: 700, borderBottom: "1px solid rgba(255,255,255,0.07)" };
+const ktd: React.CSSProperties = { padding: "5px 7px", color: "rgba(226,232,240,0.7)", borderBottom: "1px solid rgba(255,255,255,0.04)" };
 
 type Staff = { id: string; name: string; email: string; role: string; phone?: string; active: boolean };
 type Task = { id: string; title: string; description?: string; status: string; due_date?: string };
@@ -20,6 +23,7 @@ export default function TeamPage() {
   const [sel0, setSel0] = useState<Staff | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [targets, setTargets] = useState<Target[]>([]);
+  const [workKpis, setWorkKpis] = useState<KpiEntry[]>([]);
   const [msg, setMsg] = useState("");
 
   const [nf, setNf] = useState({ name: "", email: "", password: "", phone: "", role: "bdr" });
@@ -34,6 +38,7 @@ export default function TeamPage() {
   const loadWork = useCallback((id: string) => {
     fetch(`/api/tasks?staffId=${id}`).then(r => r.json()).then(d => setTasks(d.tasks || []));
     fetch(`/api/targets?staffId=${id}`).then(r => r.json()).then(d => setTargets(d.targets || []));
+    fetch(`/api/kpis?staffId=${id}&days=28`).then(r => r.json()).then(d => setWorkKpis(d.entries || []));
   }, []);
   useEffect(() => { if (sel0) loadWork(sel0.id); }, [sel0, loadWork]);
 
@@ -151,6 +156,49 @@ export default function TeamPage() {
           {!sel0 ? <p style={{ fontSize: "0.85rem", color: "rgba(226,232,240,0.35)", fontStyle: "italic" }}>Select a staff member to assign tasks and targets.</p> : (
             <div style={{ display: "grid", gap: 22 }}>
               <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#fff" }}>{sel0.name}&apos;s work</h2>
+
+              {/* KPIs */}
+              {(() => {
+                const kset = kpiSetForRole(sel0.role);
+                if (!kset) return null;
+                const w = weeklyTotals(workKpis);
+                return (
+                  <div>
+                    <h3 style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#C9A84C", marginBottom: 10 }}>KPIs · this week <span style={{ color: "rgba(226,232,240,0.35)", textTransform: "none", letterSpacing: 0 }}>· {kset.label}</span></h3>
+                    <div style={{ display: "grid", gap: 9, marginBottom: 14 }}>
+                      {kset.metrics.map(m => {
+                        const total = w[m.key] || 0;
+                        const hasT = m.weeklyMin != null;
+                        const pct = hasT ? Math.min(100, Math.round((total / (m.weeklyMin as number)) * 100)) : 0;
+                        return (
+                          <div key={m.key}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                              <span style={{ fontSize: "0.8rem", color: "#fff" }}>{m.label}</span>
+                              <span style={{ fontFamily: mono, fontSize: "0.74rem", color: "#C9A84C" }}>{total}{hasT && <span style={{ color: "rgba(226,232,240,0.4)" }}> / {m.weeklyMin}–{m.weeklyMax}</span>}</span>
+                            </div>
+                            {hasT && <div style={{ height: 5, borderRadius: 4, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: total >= (m.weeklyMin as number) ? "#34D399" : "#C9A84C" }} /></div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {workKpis.length === 0 ? <p style={{ fontSize: "0.78rem", color: "rgba(226,232,240,0.3)", fontStyle: "italic" }}>No KPI entries logged yet.</p> : (
+                      <div style={{ overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.74rem", fontFamily: mono }}>
+                          <thead><tr><th style={kth}>Date</th>{kset.metrics.map(m => <th key={m.key} style={kth}>{m.short}</th>)}</tr></thead>
+                          <tbody>
+                            {workKpis.slice(0, 7).map((e, i) => (
+                              <tr key={i}>
+                                <td style={ktd}>{String(e.entry_date).slice(5, 10)}</td>
+                                {kset.metrics.map(m => <td key={m.key} style={ktd}>{Number(e[m.key]) || 0}</td>)}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Tasks */}
               <div>
