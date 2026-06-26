@@ -8,7 +8,7 @@ const th: React.CSSProperties = { padding: "9px 14px", textAlign: "left", fontSi
 const td: React.CSSProperties = { padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,0.04)", color: "rgba(226,232,240,0.75)", verticalAlign: "top" };
 const badge = (active: boolean, pending = false): React.CSSProperties => ({ display: "inline-flex", alignItems: "center", padding: "2px 8px", borderRadius: 4, fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap", background: active ? "rgba(16,185,129,0.15)" : pending ? "rgba(245,158,11,0.15)" : "rgba(239,68,68,0.12)", color: active ? "#34D399" : pending ? "#FCD34D" : "#F87171" });
 
-function fmtN(n: number) { return "N" + Number(n).toLocaleString("en-NG"); }
+function fmtN(n: number) { return "₦" + Number(n).toLocaleString("en-NG"); }
 function fmtDate(d: string) { return new Date(d).toLocaleDateString("en-NG", { day:"numeric", month:"short", year:"numeric" }); }
 const PCOL: Record<string,string> = { faithdesk:"#8B5CF6", detaildesk:"#F59E0B", schooldesk:"#10B981" };
 const PLBL: Record<string,string> = { faithdesk:"FaithDesk", detaildesk:"DetailDesk", schooldesk:"SchoolDesk" };
@@ -18,12 +18,27 @@ export default function ClientsPage() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [prov, setProv] = useState<Record<string,string>>({});
 
   useEffect(() => {
     setLoading(true);
     fetch(`/api/clients?status=${filter}`)
       .then(r => r.json()).then(d => { setOrgs(d.orgs||[]); setLoading(false); });
   }, [filter]);
+
+  async function provision(orgId: string) {
+    setProv(p => ({ ...p, [orgId]: "Provisioning..." }));
+    try {
+      const r = await fetch("/api/clients/provision", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orgId }) });
+      const d = await r.json();
+      if (!r.ok || d.ok === false) { setProv(p => ({ ...p, [orgId]: "Error: " + (d.error || "failed").slice(0, 80) })); return; }
+      const msg = d.databaseCreated ? (d.tempPassword ? `Done. Temp pw: ${d.tempPassword}` : "Done. Database created.") : "Re-provisioned (already had a database).";
+      setProv(p => ({ ...p, [orgId]: msg }));
+      fetch(`/api/clients?status=${filter}`).then(r => r.json()).then(d => setOrgs(d.orgs || []));
+    } catch (err) {
+      setProv(p => ({ ...p, [orgId]: "Error: " + String(err).slice(0, 80) }));
+    }
+  }
 
   const filtered = orgs.filter(o =>
     (o.org_name as string)?.toLowerCase().includes(search.toLowerCase()) ||
@@ -62,11 +77,11 @@ export default function ClientsPage() {
             <thead><tr>
               <th style={th}>Organisation</th><th style={th}>Product</th><th style={th}>Plan</th>
               <th style={th}>Subdomain</th><th style={th}>Setup</th><th style={th}>Monthly</th>
-              <th style={th}>Status</th><th style={th}>Joined</th>
+              <th style={th}>Status</th><th style={th}>Joined</th><th style={th}>Actions</th>
             </tr></thead>
             <tbody>
-              {loading ? <tr><td colSpan={8} style={{...td, textAlign:"center", padding:"32px", color:"rgba(226,232,240,0.3)", fontStyle:"italic"}}>Loading...</td></tr>
-              : filtered.length === 0 ? <tr><td colSpan={8} style={{...td, textAlign:"center", padding:"32px", color:"rgba(226,232,240,0.3)", fontStyle:"italic"}}>No clients found</td></tr>
+              {loading ? <tr><td colSpan={9} style={{...td, textAlign:"center", padding:"32px", color:"rgba(226,232,240,0.3)", fontStyle:"italic"}}>Loading...</td></tr>
+              : filtered.length === 0 ? <tr><td colSpan={9} style={{...td, textAlign:"center", padding:"32px", color:"rgba(226,232,240,0.3)", fontStyle:"italic"}}>No clients found</td></tr>
               : filtered.map(org => (
                 <tr key={org.id as string}>
                   <td style={td}>
@@ -84,6 +99,22 @@ export default function ClientsPage() {
                   <td style={td}>{fmtN(Number(org.monthly_fee))}/mo</td>
                   <td style={td}><span style={badge(org.status==="active", org.status==="pending_payment")}>{(org.status as string).replace("_"," ")}</span></td>
                   <td style={{...td, fontSize:"0.75rem"}}>{fmtDate(org.created_at as string)}</td>
+                  <td style={td}>
+                    {org.product === "schooldesk" ? (
+                      <div style={{ display:"flex", flexDirection:"column", gap:4, minWidth:140 }}>
+                        <button onClick={() => provision(org.id as string)}
+                          disabled={prov[org.id as string] === "Provisioning..."}
+                          style={{ padding:"6px 12px", borderRadius:6, fontSize:"0.7rem", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em", border:"none", cursor:"pointer", background: org.database_url ? "rgba(255,255,255,0.08)" : "#C9A84C", color: org.database_url ? "rgba(226,232,240,0.8)" : "#060E2A", whiteSpace:"nowrap" }}>
+                          {org.database_url ? "Re-provision" : "Provision"}
+                        </button>
+                        {prov[org.id as string] && (
+                          <span style={{ fontSize:"0.66rem", fontFamily:"'JetBrains Mono',monospace", color: (prov[org.id as string]||"").startsWith("Error") ? "#F87171" : "#34D399", wordBreak:"break-word" }}>
+                            {prov[org.id as string]}
+                          </span>
+                        )}
+                      </div>
+                    ) : <span style={{ fontSize:"0.7rem", color:"rgba(226,232,240,0.25)" }}>—</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>
