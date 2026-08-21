@@ -11,22 +11,30 @@ export async function getOrgStats() {
       COUNT(*) FILTER (WHERE status = 'active')          AS active,
       COUNT(*) FILTER (WHERE status = 'pending_payment') AS pending,
       COUNT(*) FILTER (WHERE status = 'suspended')       AS suspended,
-      COUNT(*)                                            AS total,
-      COUNT(*) FILTER (WHERE product = 'faithdesk')      AS faithdesk,
-      COUNT(*) FILTER (WHERE product = 'detaildesk')     AS detaildesk,
-      COUNT(*) FILTER (WHERE product = 'schooldesk')     AS schooldesk
+      COUNT(*)                                            AS total
     FROM organisations
   `;
 }
 
-export async function getMRR() {
+// Generic, product-agnostic breakdown -- any desk product (current or
+// future) shows up automatically with zero code changes, since this simply
+// groups by whatever is in organisations.product.
+export async function getOrgCountsByProduct() {
   return sql`
-    SELECT
-      COALESCE(SUM(monthly_fee), 0) AS mrr,
-      COALESCE(SUM(CASE WHEN product = 'faithdesk'  THEN monthly_fee ELSE 0 END), 0) AS faithdesk_mrr,
-      COALESCE(SUM(CASE WHEN product = 'detaildesk' THEN monthly_fee ELSE 0 END), 0) AS detaildesk_mrr
+    SELECT product, COUNT(*) AS count
+    FROM organisations
+    GROUP BY product
+    ORDER BY count DESC
+  `;
+}
+
+export async function getMRRByProduct() {
+  return sql`
+    SELECT product, COALESCE(SUM(monthly_fee), 0) AS mrr, COUNT(*) AS active_count
     FROM organisations
     WHERE status = 'active'
+    GROUP BY product
+    ORDER BY mrr DESC
   `;
 }
 
@@ -44,6 +52,57 @@ export async function getRevenueByMonth() {
     ORDER BY month_date DESC
     LIMIT 12
   `;
+}
+
+// Batch 02 additions -- real aggregates for the Owner Dashboard / Global KPIs.
+// Same style/connection as the functions above; nothing here is placeholder data.
+
+// Real date-range support: given an explicit [from,to], computes the
+// equivalent-length immediately-preceding period for a true trend comparison
+// (e.g. a 9-day range compares against the 9 days before it). Falls back to
+// the previous fixed 7-day/7-day comparison when no range is supplied, so
+// existing callers keep working unchanged.
+export async function getLeadStats(from?: string, to?: string) {
+  if (!from || !to) {
+    return sql`
+      SELECT
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days')                             AS current_count,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '14 days' AND created_at < NOW() - INTERVAL '7 days') AS previous_count,
+        COUNT(*)                                                                                     AS total
+      FROM service_inquiries
+    `;
+  }
+  // Compute the equivalent-length prior period in plain JS -- avoids CTEs
+  // and correlated subqueries inside FILTER, which are unnecessary here and
+  // more fragile than four flat date parameters.
+  const fromDate = new Date(from + "T00:00:00Z");
+  const toDateExclusive = new Date(to + "T00:00:00Z");
+  toDateExclusive.setUTCDate(toDateExclusive.getUTCDate() + 1); // make "to" inclusive of its whole day
+  const spanMs = toDateExclusive.getTime() - fromDate.getTime();
+  const prevFrom = new Date(fromDate.getTime() - spanMs);
+  const prevTo = fromDate; // exclusive upper bound = start of current period
+
+  return sql`
+    SELECT
+      COUNT(*) FILTER (WHERE created_at >= ${fromDate.toISOString()} AND created_at < ${toDateExclusive.toISOString()}) AS current_count,
+      COUNT(*) FILTER (WHERE created_at >= ${prevFrom.toISOString()} AND created_at < ${prevTo.toISOString()}) AS previous_count,
+      COUNT(*) AS total
+    FROM service_inquiries
+  `;
+}
+
+export async function getLeadsBySource() {
+  return sql`
+    SELECT COALESCE(NULLIF(source, ''), 'inquiry') AS source, COUNT(*) AS count
+    FROM service_inquiries
+    GROUP BY source
+    ORDER BY count DESC
+  `;
+}
+
+export async function getActiveStaffCount() {
+  const rows = await sql`SELECT COUNT(*) FILTER (WHERE active) AS active, COUNT(*) AS total FROM staff`;
+  return rows[0] || { active: 0, total: 0 };
 }
 
 export async function getAllOrgs(filter?: string) {

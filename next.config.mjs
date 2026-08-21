@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ["bcryptjs", "jsonwebtoken"],
-  },
+  serverExternalPackages: ["bcryptjs", "jsonwebtoken"],
 };
 export default nextConfig;

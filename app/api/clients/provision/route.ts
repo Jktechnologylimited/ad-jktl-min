@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const ADMIN = process.env.SCHOOLDESK_ADMIN_URL;
+  const ADMIN = (process.env.SCHOOLDESK_ADMIN_URL || "").replace(/\/+$/, "").replace(/\/login$/i, "");
   const SECRET = process.env.PROVISION_SECRET;
   if (!ADMIN || !SECRET) {
     return NextResponse.json({ error: "SCHOOLDESK_ADMIN_URL / PROVISION_SECRET not configured" }, { status: 503 });

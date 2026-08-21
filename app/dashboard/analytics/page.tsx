@@ -1,10 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
+import KpiCard from "@/components/widgets/KpiCard";
+import DonutChart, { DonutSlice } from "@/components/widgets/DonutChart";
+import PendingModuleCard from "@/components/widgets/PendingModuleCard";
+import { productMeta } from "@/lib/products";
 
 const sans = "'Plus Jakarta Sans',sans-serif";
 const mono = "'JetBrains Mono',monospace";
 
-function fmtN(n: number) { return "N" + Number(n||0).toLocaleString("en-NG"); }
+function fmtN(n: number) { return "\u20a6" + Number(n||0).toLocaleString("en-NG"); }
 
 interface MonthData {
   month: string;
@@ -15,11 +19,12 @@ interface MonthData {
 
 interface Summary {
   mrr: number;
-  faithdeskMrr: number;
-  detaildeskMrr: number;
-  orgs: { active: number; pending: number; total: number; faithdesk: number; detaildesk: number };
+  mrrByProduct: { product: string; mrr: string; active_count: string }[];
+  orgs: { active: number; pending: number; total: number; byProduct: { product: string; count: string }[] };
   affiliates: { active: number; pending: number };
   pendingPayoutCount: number;
+  leadsBySource?: { source: string; count: number }[];
+  staff?: { active: number; total: number };
 }
 
 export default function AnalyticsPage() {
@@ -69,8 +74,10 @@ export default function AnalyticsPage() {
           { label:"Current MRR",        value: fmtN(summary?.mrr||0),                  color:"#34D399" },
           { label:"Active Clients",      value: summary?.orgs?.active||0,               color:"#60A5FA" },
           { label:"Total Clients",       value: summary?.orgs?.total||0,                color:"rgba(226,232,240,0.5)" },
-          { label:"FaithDesk MRR",       value: fmtN(summary?.faithdeskMrr||0),         color:"#8B5CF6" },
-          { label:"DetailDesk MRR",      value: fmtN(summary?.detaildeskMrr||0),        color:"#F59E0B" },
+          ...(summary?.mrrByProduct || []).slice(0, 3).map(p => {
+            const meta = productMeta(p.product);
+            return { label: `${meta.label} MRR`, value: fmtN(Number(p.mrr)), color: meta.color };
+          }),
           { label:"Active Affiliates",   value: summary?.affiliates?.active||0,         color:"#A78BFA" },
           { label:"12-mo Setup Revenue", value: fmtN(totalSetup),                       color:"#34D399" },
           { label:"12-mo New Clients",   value: totalClients,                           color:"#60A5FA" },
@@ -80,6 +87,28 @@ export default function AnalyticsPage() {
             <p style={{ fontSize:"0.72rem", color:k.color, fontWeight:600 }}>{k.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Global KPIs Summary (Batch 02, Sheet 2) -- additive, real where the module
+          exists, honest pending state where it doesn't yet (Projects/Tickets). */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 12, marginBottom: 16 }}>
+        <KpiCard label="Active Staff" value={summary?.staff?.active ?? 0} trendLabel={`${summary?.staff?.total ?? 0} total`} accent="#60A5FA" />
+        <KpiCard label="Total Projects" pendingBatch="Batch 07" />
+        <KpiCard label="Open Tickets" pendingBatch="Batch 10" />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16, marginBottom: 28 }}>
+        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: 20 }}>
+          <p style={{ fontWeight: 700, color: "#fff", fontSize: "0.9rem", marginBottom: 4 }}>Leads by Source</p>
+          <p style={{ fontSize: "0.72rem", color: "rgba(226,232,240,0.3)", marginBottom: 16 }}>All-time inquiry source</p>
+          <DonutChart
+            slices={(summary?.leadsBySource || []).map((s, i): DonutSlice => ({
+              label: s.source, value: Number(s.count),
+              color: ["#60A5FA", "#C9A84C", "#A78BFA", "#34D399", "#F87171"][i % 5],
+            }))}
+          />
+        </div>
+        <PendingModuleCard title="Projects Status" batchLabel="Batch 07 (Projects)" />
+        <PendingModuleCard title="Open Tickets by Priority" batchLabel="Batch 10 (Support)" />
       </div>
 
       {/* Monthly breakdown */}
@@ -136,26 +165,28 @@ export default function AnalyticsPage() {
             <p style={{ fontWeight:700, color:"#fff", fontSize:"0.9rem", marginBottom:4 }}>Product Split</p>
             <p style={{ fontSize:"0.72rem", color:"rgba(226,232,240,0.3)", marginBottom:20 }}>Current active clients by product</p>
             <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-              {[
-                { label:"FaithDesk",  value:summary?.orgs?.faithdesk||0,  mrr:summary?.faithdeskMrr||0,  color:"#8B5CF6" },
-                { label:"DetailDesk", value:summary?.orgs?.detaildesk||0, mrr:summary?.detaildeskMrr||0, color:"#F59E0B" },
-              ].map(p => {
+              {(summary?.mrrByProduct || []).map(p => {
+                const meta = productMeta(p.product);
                 const total = (summary?.orgs?.active||0) || 1;
+                const count = Number(p.active_count);
                 return (
-                  <div key={p.label}>
+                  <div key={p.product}>
                     <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
                       <div>
-                        <span style={{ fontWeight:700, fontSize:"0.85rem", color:p.color }}>{p.label}</span>
-                        <span style={{ fontSize:"0.72rem", color:"rgba(226,232,240,0.3)", marginLeft:8 }}>{p.value} clients</span>
+                        <span style={{ fontWeight:700, fontSize:"0.85rem", color:meta.color }}>{meta.label}</span>
+                        <span style={{ fontSize:"0.72rem", color:"rgba(226,232,240,0.3)", marginLeft:8 }}>{count} client{count===1?"":"s"}</span>
                       </div>
-                      <span style={{ fontFamily:mono, fontSize:"0.75rem", color:"#fff", fontWeight:700 }}>{fmtN(p.mrr)}/mo</span>
+                      <span style={{ fontFamily:mono, fontSize:"0.75rem", color:"#fff", fontWeight:700 }}>{fmtN(Number(p.mrr))}/mo</span>
                     </div>
                     <div style={{ height:8, borderRadius:4, background:"rgba(255,255,255,0.06)", overflow:"hidden" }}>
-                      <div style={{ height:"100%", borderRadius:4, background:p.color, width:`${(p.value/total)*100}%`, transition:"width 0.4s ease" }} />
+                      <div style={{ height:"100%", borderRadius:4, background:meta.color, width:`${(count/total)*100}%`, transition:"width 0.4s ease" }} />
                     </div>
                   </div>
                 );
               })}
+              {(summary?.mrrByProduct || []).length === 0 && (
+                <p style={{ fontSize:"0.78rem", color:"rgba(226,232,240,0.3)", fontStyle:"italic" }}>No active clients yet</p>
+              )}
             </div>
             <div style={{ marginTop:20, paddingTop:16, borderTop:"1px solid rgba(255,255,255,0.06)" }}>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>

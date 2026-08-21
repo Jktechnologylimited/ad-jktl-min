@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    const { email, password, remember } = await req.json();
     const adminEmail = process.env.ADMIN_EMAIL || "info@jktl.com.ng";
     const cleanEmail = String(email || "").trim().toLowerCase();
 
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       const valid = await checkPassword(password);
       if (!valid) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
       const token = signToken({ email: adminEmail, role: "owner", name: "Owner" });
-      return setCookie(token);
+      return setCookie(token, remember);
     }
 
     // 2) Staff login (DB-based)
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
         if (ok) {
           const role = isValidRole(staff.role) ? staff.role : "bdr";
           const token = signToken({ email: staff.email, role, name: staff.name, staffId: staff.id });
-          return setCookie(token);
+          return setCookie(token, remember);
         }
       }
     }
@@ -40,14 +40,20 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function setCookie(token: string) {
+// "Remember me" checked (or omitted, matching prior behavior) => 7 days.
+// Unchecked => session-length cookie (cleared when the browser closes).
+function setCookie(token: string, remember?: boolean) {
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(COOKIE_NAME, token, {
+  const opts: Parameters<typeof res.cookies.set>[2] = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7,
     path: "/",
-  });
+  };
+  if (remember === false) {
+    res.cookies.set(COOKIE_NAME, token, opts);
+  } else {
+    res.cookies.set(COOKIE_NAME, token, { ...opts, maxAge: 60 * 60 * 24 * 7 });
+  }
   return res;
 }
