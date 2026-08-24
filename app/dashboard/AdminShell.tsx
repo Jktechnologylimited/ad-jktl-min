@@ -23,7 +23,12 @@ const NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/dashboard/my-work", label: "My Work", all: true },
   { label: "CRM", children: [
-    { href: "/dashboard/inquiries", label: "Leads", all: true },
+    { href: "/dashboard/leads", label: "Leads Overview" },
+    { href: "/dashboard/leads/all", label: "All Leads" },
+    { href: "/dashboard/opportunities", label: "Opportunities Overview" },
+    { href: "/dashboard/opportunities/all", label: "All Opportunities" },
+    { href: "/dashboard/opportunities/board", label: "Pipeline Board" },
+    { href: "/dashboard/opportunities/activity", label: "Sales Activities" },
     { href: "/dashboard/services", label: "Service Inquiries" },
   ]},
   { label: "Customers", children: [

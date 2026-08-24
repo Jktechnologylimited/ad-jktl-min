@@ -102,8 +102,8 @@ export default function DashboardPage() {
           <p style={{ fontSize: "0.95rem", fontWeight: 700, color: colors.primary }}>My Work &rarr;</p>
           <p style={{ fontSize: "0.8rem", color: colors.textLow }}>Your tasks and targets</p>
         </Link>
-        <Link href="/dashboard/inquiries" style={{ textDecoration: "none", padding: "18px 20px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}>
-          <p style={{ fontSize: "0.95rem", fontWeight: 700, color: "#fff" }}>Inquiries &rarr;</p>
+        <Link href="/dashboard/leads/all" style={{ textDecoration: "none", padding: "18px 20px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}>
+          <p style={{ fontSize: "0.95rem", fontWeight: 700, color: "#fff" }}>Leads &rarr;</p>
           <p style={{ fontSize: "0.8rem", color: colors.textLow }}>Incoming leads to follow up</p>
         </Link>
       </div>
@@ -161,6 +161,9 @@ export default function DashboardPage() {
   ];
 
   const quickActions = [
+    { label: "Add New Lead", href: "/dashboard/leads/new" },
+    { label: "Add New Opportunity", href: "/dashboard/opportunities/new" },
+    { label: "All Leads", href: "/dashboard/leads/all" },
     { label: "Add New Customer", href: "/dashboard/clients/add" },
     { label: "All Clients", href: "/dashboard/clients" },
     { label: "New Support Ticket", href: "/dashboard/support" },

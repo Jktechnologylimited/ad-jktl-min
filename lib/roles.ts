@@ -22,8 +22,8 @@ export const ROLES: RoleDef[] = [
   {
     id: "bdr",
     label: "Business Dev / Sales",
-    desc: "Inquiries plus their own tasks & targets.",
-    paths: ["/dashboard/inquiries", "/api/inquiries"],
+    desc: "Leads, Opportunities plus their own tasks & targets.",
+    paths: ["/dashboard/inquiries", "/api/inquiries", "/dashboard/leads", "/api/leads", "/dashboard/opportunities", "/api/opportunities", "/api/customers/search", "/api/desk-products", "/api/agency-services"],
   },
   {
     id: "hiring",
@@ -45,8 +45,8 @@ export const ROLES: RoleDef[] = [
   {
     id: "support",
     label: "Customer Support",
-    desc: "Inquiries only.",
-    paths: ["/dashboard/inquiries", "/api/inquiries"],
+    desc: "Leads and inquiries only.",
+    paths: ["/dashboard/inquiries", "/api/inquiries", "/dashboard/leads", "/api/leads"],
   },
 ];
 
