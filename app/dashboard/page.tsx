@@ -163,8 +163,10 @@ export default function DashboardPage() {
   const quickActions = [
     { label: "Add New Lead", href: "/dashboard/leads/new" },
     { label: "Add New Opportunity", href: "/dashboard/opportunities/new" },
+    { label: "Create Proposal", href: "/dashboard/proposals/new" },
     { label: "All Leads", href: "/dashboard/leads/all" },
-    { label: "Add New Customer", href: "/dashboard/clients/add" },
+    { label: "Add New Client", href: "/dashboard/clients/add" },
+    { label: "Add New Customer", href: "/dashboard/customers/new" },
     { label: "All Clients", href: "/dashboard/clients" },
     { label: "New Support Ticket", href: "/dashboard/support" },
     { label: "Create Project", href: "/dashboard/projects" },

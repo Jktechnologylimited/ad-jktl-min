@@ -22,8 +22,8 @@ export const ROLES: RoleDef[] = [
   {
     id: "bdr",
     label: "Business Dev / Sales",
-    desc: "Leads, Opportunities plus their own tasks & targets.",
-    paths: ["/dashboard/inquiries", "/api/inquiries", "/dashboard/leads", "/api/leads", "/dashboard/opportunities", "/api/opportunities", "/api/customers/search", "/api/desk-products", "/api/agency-services"],
+    desc: "Leads, Opportunities, Proposals, Customers plus their own tasks & targets.",
+    paths: ["/dashboard/inquiries", "/api/inquiries", "/dashboard/leads", "/api/leads", "/dashboard/opportunities", "/api/opportunities", "/api/customers/search", "/api/desk-products", "/api/agency-services", "/dashboard/proposals", "/api/proposals", "/dashboard/customers", "/api/customers"],
   },
   {
     id: "hiring",

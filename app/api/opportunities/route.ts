@@ -47,9 +47,9 @@ export async function POST(req: NextRequest) {
 
     const rows = await sql`
       INSERT INTO opportunities
-        (name, customer_name, pipeline, stage, estimated_value, expected_close_date, probability, owner_staff_id, source, description)
+        (name, customer_id, customer_name, pipeline, stage, estimated_value, expected_close_date, probability, owner_staff_id, source, description)
       VALUES
-        (${name}, ${customerName}, ${b.pipeline}, ${b.stage}, ${Number(b.estimatedValue) || 0},
+        (${name}, ${b.customerId || null}, ${customerName}, ${b.pipeline}, ${b.stage}, ${Number(b.estimatedValue) || 0},
          ${b.expectedCloseDate || null}, ${Number(b.probability) || 50}, ${b.ownerStaffId || session.staffId || null},
          ${b.source || null}, ${b.description || null})
       RETURNING id

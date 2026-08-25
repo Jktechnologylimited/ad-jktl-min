@@ -9,7 +9,7 @@ const STAGES = ["Qualification", "Proposal", "Negotiation", "Closed Won", "Close
 const SOURCES = ["website", "referral", "affiliate", "bdr", "other"];
 
 interface Staff { id: string; name: string; active: boolean; }
-interface CustomerResult { name: string; email?: string; phone?: string; }
+interface CustomerResult { id?: string; name: string; email?: string; phone?: string; }
 
 const inputStyle: React.CSSProperties = { width: "100%", padding: "10px 13px", borderRadius: 8, background: "rgba(255,255,255,0.06)", border: `1.5px solid ${colors.border}`, color: "#fff", fontFamily: font.sans, fontSize: "0.85rem", outline: "none" };
 const labelStyle: React.CSSProperties = { display: "block", fontSize: "0.7rem", fontWeight: 700, color: colors.textLow, marginBottom: 6 };
@@ -18,7 +18,7 @@ export default function NewOpportunityPage() {
   const router = useRouter();
   const [staff, setStaff] = useState<Staff[]>([]);
   const [form, setForm] = useState({
-    name: "", customerName: "", pipeline: PIPELINES[0], stage: STAGES[0], estimatedValue: "",
+    name: "", customerName: "", customerId: "", pipeline: PIPELINES[0], stage: STAGES[0], estimatedValue: "",
     expectedCloseDate: "", probability: "50", ownerStaffId: "", source: "website", description: "",
   });
   const [customerResults, setCustomerResults] = useState<CustomerResult[]>([]);
@@ -32,7 +32,7 @@ export default function NewOpportunityPage() {
   function set<K extends keyof typeof form>(key: K, val: string) { setForm(f => ({ ...f, [key]: val })); }
 
   function onCustomerInput(val: string) {
-    set("customerName", val);
+    setForm(f => ({ ...f, customerName: val, customerId: "" }));
     setShowResults(true);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
@@ -70,8 +70,8 @@ export default function NewOpportunityPage() {
           {showResults && customerResults.length > 0 && (
             <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, marginTop: 4, zIndex: 20, maxHeight: 200, overflowY: "auto" }}>
               {customerResults.map(c => (
-                <button key={c.name} onClick={() => { set("customerName", c.name); setShowResults(false); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", background: "none", border: "none", cursor: "pointer", fontSize: "0.8rem", color: "#fff" }}>
-                  {c.name}
+                <button key={c.name} onClick={() => { setForm(f => ({ ...f, customerName: c.name, customerId: c.id || "" })); setShowResults(false); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", background: "none", border: "none", cursor: "pointer", fontSize: "0.8rem", color: "#fff" }}>
+                  {c.name}{c.id && <span style={{ color: colors.primary, fontSize: "0.65rem", marginLeft: 6 }}>&#9679; existing customer</span>}
                 </button>
               ))}
             </div>

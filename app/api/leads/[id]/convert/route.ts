@@ -34,10 +34,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const oppRows = await sql`
       INSERT INTO opportunities
-        (lead_id, name, customer_name, contact_name, contact_email, contact_phone, industry, company_size,
+        (lead_id, customer_id, name, customer_name, contact_name, contact_email, contact_phone, industry, company_size,
          pipeline, stage, estimated_value, expected_close_date, owner_staff_id, source)
       VALUES
-        (${id}, ${opportunityName}, ${customerName}, ${leadName}, ${lead.email || null}, ${lead.phone || null},
+        (${id}, ${lead.customer_id || null}, ${opportunityName}, ${customerName}, ${leadName}, ${lead.email || null}, ${lead.phone || null},
          ${lead.industry || null}, ${lead.employees || null}, ${b.pipeline}, ${b.stage},
          ${Number(b.estimatedValue) || 0}, ${b.expectedCloseDate || null}, ${ownerStaffId}, ${lead.source || null})
       RETURNING id

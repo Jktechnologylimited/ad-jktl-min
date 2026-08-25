@@ -31,12 +31,25 @@ const NAV: NavItem[] = [
     { href: "/dashboard/opportunities/activity", label: "Sales Activities" },
     { href: "/dashboard/services", label: "Service Inquiries" },
   ]},
-  { label: "Customers", children: [
+  { label: "Proposals", children: [
+    { href: "/dashboard/proposals", label: "Proposals Overview" },
+    { href: "/dashboard/proposals/all", label: "All Proposals" },
+    { href: "/dashboard/proposals/new", label: "New Proposal" },
+  ]},
+  { label: "Subscriptions", children: [
     { href: "/dashboard/clients", label: "Clients" },
     { href: "/dashboard/onboarding", label: "Onboarding" },
   ]},
+  { label: "Customers", children: [
+    { href: "/dashboard/customers", label: "Customers Overview" },
+    { href: "/dashboard/customers/all", label: "All Customers" },
+    { href: "/dashboard/customers/new", label: "Add Customer" },
+  ]},
   { label: "Projects", children: [
-    { href: "/dashboard/projects", label: "Overview", pending: true },
+    { href: "/dashboard/projects", label: "Overview" },
+    { href: "/dashboard/projects/all", label: "All Projects" },
+    { href: "/dashboard/projects/status", label: "Project Status" },
+    { href: "/dashboard/projects/delivery", label: "Delivery Progress" },
   ]},
   { label: "Support", children: [
     { href: "/dashboard/support", label: "Overview", pending: true },

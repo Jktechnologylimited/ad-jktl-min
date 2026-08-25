@@ -67,7 +67,13 @@ export default function AddClientPage() {
       const res = await fetch("/api/clients/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          product: form.product, plan: form.plan, orgName: form.org_name, ownerName: form.owner_name,
+          ownerEmail: form.owner_email, ownerPhone: form.owner_phone, subdomain: form.subdomain,
+          customDomain: form.custom_domain, brandColor: form.brand_color, setupFee: form.setup_fee,
+          monthlyFee: form.monthly_fee, address: form.address, status: form.status,
+          activatedAt: form.activated_at, notes: form.notes,
+        }),
       });
       const data = await res.json();
       if (!res.ok) { setMsg({ type:"err", text: data.error || "Failed to save" }); return; }

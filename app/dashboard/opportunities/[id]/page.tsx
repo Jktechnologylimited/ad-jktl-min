@@ -5,10 +5,10 @@ import Link from "next/link";
 import { colors, font } from "@/lib/design-tokens";
 
 interface Opportunity {
-  id: string; name: string; customer_name: string; contact_name?: string; contact_email?: string; contact_phone?: string;
+  id: string; name: string; customer_id?: string; customer_name: string; contact_name?: string; contact_email?: string; contact_phone?: string;
   industry?: string; company_size?: string; location?: string; pipeline: string; stage: string; probability?: number;
   estimated_value: string; expected_close_date?: string; source?: string; owner_name?: string; description?: string;
-  tags?: string[]; products?: { id: string; name: string; type: string }[]; status: string; created_at: string; updated_at: string;
+  tags?: string[]; products?: { id: string; name: string; type: string }[]; status: string; project_requested?: boolean; created_at: string; updated_at: string;
 }
 interface Activity { id: string; type: string; title: string; body?: string; actor_name?: string; created_at: string; }
 interface CatalogItem { id: string; name: string; type: "desk_product" | "agency_service"; }
@@ -106,6 +106,14 @@ export default function OpportunityDetailPage() {
           </div>
         )}
       </div>
+
+      {opp.project_requested && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "14px 16px", borderRadius: 10, background: "rgba(201,168,76,0.08)", border: `1px solid ${colors.primary}40`, marginBottom: 20 }}>
+          <p style={{ fontSize: "0.82rem", color: colors.textMed }}>A project was requested when this deal was closed won.</p>
+          <Link href={`/dashboard/projects/new?opportunityId=${id}${opp.customer_id ? `&customerId=${opp.customer_id}` : ""}`}
+            style={{ padding: "8px 16px", borderRadius: 7, background: colors.primary, color: colors.primaryText, fontWeight: 700, fontSize: "0.78rem", textDecoration: "none", whiteSpace: "nowrap" }}>Create Project</Link>
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 4, borderBottom: `1px solid ${colors.border}`, margin: "16px 0 20px", overflowX: "auto" }}>
         {TABS.map(t => (
