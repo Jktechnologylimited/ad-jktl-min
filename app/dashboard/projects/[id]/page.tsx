@@ -12,17 +12,25 @@ interface Project {
 interface Task { id: string; title: string; description?: string; status: string; priority: string; due_date?: string; staff_id?: string; staff_name?: string; }
 interface Milestone { id: string; name: string; description?: string; start_date?: string; due_date?: string; status: string; progress_pct: number; }
 interface TeamMember { id: string; staff_id: string; name: string; email: string; project_role?: string; assigned_tasks: string; completed_tasks: string; }
-interface Activity { id: string; type: string; title: string; body?: string; actor_name?: string; created_at: string; }
 interface Staff { id: string; name: string; active: boolean; }
 
-const TABS = ["Overview", "Tasks", "Milestones", "Timeline", "Team", "Files", "Notes", "Invoices", "Settings"] as const;
+const INLINE_TABS = ["Overview", "Tasks", "Milestones", "Timeline", "Team", "Invoices", "Settings"] as const;
+const LINK_TABS = [
+  { label: "Files", href: "files" },
+  { label: "Designs", href: "files?category=designs" },
+  { label: "Feedback", href: "feedback" },
+  { label: "Approvals", href: "approvals" },
+  { label: "Handover", href: "handover" },
+  { label: "Communication", href: "communication" },
+  { label: "Activity", href: "activity" },
+];
+const TABS = [...INLINE_TABS] as const;
 const TASK_COLS = [["todo", "To Do"], ["in_progress", "In Progress"], ["in_review", "In Review"], ["completed", "Completed"]] as const;
 const STATUS_COLOR: Record<string, string> = { in_progress: "#60A5FA", completed: "#34D399", on_hold: "#F59E0B", not_started: "#94A3B8" };
 const PRIORITY_COLOR: Record<string, string> = { high: colors.danger, medium: colors.warning, low: colors.textFaint };
 function label(s: string) { return s.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase()); }
 function fmtN(n: number) { return "\u20a6" + Number(n || 0).toLocaleString("en-NG"); }
 function fmtDate(d?: string) { return d ? new Date(d).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" }) : "\u2014"; }
-function timeAgo(d: string) { const m = Math.max(0, Math.floor((Date.now() - new Date(d).getTime()) / 60000)); if (m < 60) return `${m}m ago`; if (m < 1440) return `${Math.floor(m / 60)}h ago`; return `${Math.floor(m / 1440)}d ago`; }
 const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", borderRadius: 7, background: "rgba(255,255,255,0.06)", border: `1.5px solid ${colors.border}`, color: "#fff", fontFamily: font.sans, fontSize: "0.82rem", outline: "none" };
 const cardStyle: React.CSSProperties = { background: "rgba(255,255,255,0.04)", border: `1px solid ${colors.border}`, borderRadius: 10, padding: 20 };
 
@@ -38,7 +46,6 @@ export default function ProjectDetailPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,7 +55,6 @@ export default function ProjectDetailPage() {
   const [newMilestone, setNewMilestone] = useState({ name: "", description: "", startDate: "", dueDate: "" });
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMember, setNewMember] = useState({ staffId: "", projectRole: "" });
-  const [note, setNote] = useState("");
 
   const load = useCallback(() => {
     Promise.all([
@@ -56,15 +62,13 @@ export default function ProjectDetailPage() {
       fetch(`/api/tasks?projectId=${id}`).then(r => r.json()),
       fetch(`/api/projects/${id}/milestones`).then(r => r.json()),
       fetch(`/api/projects/${id}/team`).then(r => r.json()),
-      fetch(`/api/projects/${id}/activity`).then(r => r.json()),
       fetch("/api/staff").then(r => r.json()).catch(() => ({ staff: [] })),
-    ]).then(([p, t, m, tm, a, s]) => {
+    ]).then(([p, t, m, tm, s]) => {
       setProject(p.project || null);
       setProgress(p.progress || { total: 0, completed: 0, pct: 0 });
       setTasks(t.tasks || []);
       setMilestones(m.milestones || []);
       setTeam(tm.team || []);
-      setActivities(a.activities || []);
       setStaff((s.staff || []).filter((x: Staff) => x.active));
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -102,12 +106,6 @@ export default function ProjectDetailPage() {
     await fetch(`/api/projects/${id}/team/${memberId}`, { method: "DELETE" });
     load();
   }
-  async function addNote() {
-    if (!note.trim()) return;
-    await fetch(`/api/projects/${id}/activity`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "note", title: "Note added", body: note.trim() }) });
-    setNote(""); load();
-  }
-
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: colors.textFaint, fontFamily: font.sans }}>Loading...</div>;
   if (!project) return (
     <div style={{ padding: 40, textAlign: "center", fontFamily: font.sans }}>
@@ -116,7 +114,6 @@ export default function ProjectDetailPage() {
     </div>
   );
 
-  const notes = activities.filter(a => a.type === "note");
 
   return (
     <div style={{ padding: "clamp(20px,4vw,36px)", fontFamily: font.sans, maxWidth: 1100 }}>
@@ -129,13 +126,21 @@ export default function ProjectDetailPage() {
           </div>
           <p style={{ fontSize: "0.78rem", color: colors.textFaint, marginTop: 4, fontFamily: font.mono }}>{project.project_number} {project.customer_name && `\u00b7 ${project.customer_name}`}</p>
         </div>
-        <select value={project.status} onChange={e => updateStatus(e.target.value)} style={{ ...inputStyle, width: "auto" }}>
-          {["not_started", "in_progress", "on_hold", "completed"].map(s => <option key={s} value={s}>{label(s)}</option>)}
-        </select>
+        {project.status === "completed" ? (
+          <Link href={`/dashboard/projects/${id}/complete`} style={{ padding: "9px 16px", borderRadius: 8, background: "rgba(52,211,153,0.15)", border: `1px solid ${colors.success}40`, color: colors.success, fontWeight: 700, fontSize: "0.8rem", textDecoration: "none" }}>View Completion Summary</Link>
+        ) : (
+          <div style={{ display: "flex", gap: 10 }}>
+            <select value={project.status} onChange={e => updateStatus(e.target.value)} style={{ ...inputStyle, width: "auto" }}>
+              {["not_started", "in_progress", "on_hold"].map(s => <option key={s} value={s}>{label(s)}</option>)}
+            </select>
+            <Link href={`/dashboard/projects/${id}/complete`} style={{ padding: "9px 16px", borderRadius: 8, background: colors.primary, color: colors.primaryText, fontWeight: 700, fontSize: "0.8rem", textDecoration: "none", whiteSpace: "nowrap" }}>Mark Completed</Link>
+          </div>
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 4, borderBottom: `1px solid ${colors.border}`, margin: "16px 0 20px", overflowX: "auto" }}>
         {TABS.map(t => <button key={t} onClick={() => setTab(t)} style={{ padding: "9px 14px", background: "none", border: "none", borderBottom: tab === t ? `2px solid ${colors.primary}` : "2px solid transparent", color: tab === t ? colors.primary : colors.textFaint, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", whiteSpace: "nowrap" }}>{t}</button>)}
+        {LINK_TABS.map(t => <Link key={t.label} href={`/dashboard/projects/${id}/${t.href}`} style={{ padding: "9px 14px", color: colors.textFaint, fontWeight: 700, fontSize: "0.8rem", textDecoration: "none", whiteSpace: "nowrap" }}>{t.label}</Link>)}
       </div>
 
       {tab === "Overview" && (
@@ -316,27 +321,8 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {tab === "Files" && <PendingTab title="Files & Documents" batch="a future batch" />}
       {tab === "Invoices" && <PendingTab title="Invoices" batch="Batch 12, Finance" />}
       {tab === "Settings" && <PendingTab title="Project settings" batch="a future batch" />}
-
-      {tab === "Notes" && (
-        <div style={cardStyle}>
-          <p style={{ fontWeight: 700, color: "#fff", fontSize: "0.85rem", marginBottom: 14 }}>Notes</p>
-          <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Add a note..." rows={3} style={{ ...inputStyle, resize: "vertical", marginBottom: 10 }} />
-          <button onClick={addNote} style={{ padding: "8px 16px", borderRadius: 7, background: colors.primary, color: colors.primaryText, border: "none", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", marginBottom: 18 }}>Add Note</button>
-          {notes.length === 0 ? <p style={{ fontSize: "0.8rem", color: colors.textFaint, fontStyle: "italic" }}>No notes yet</p> : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {notes.map(n => (
-                <div key={n.id} style={{ padding: 12, borderRadius: 8, background: "rgba(255,255,255,0.03)", border: `1px solid ${colors.border}` }}>
-                  <p style={{ fontSize: "0.82rem", color: colors.textMed }}>{n.body}</p>
-                  <p style={{ fontSize: "0.66rem", color: colors.textFaint, marginTop: 6, fontFamily: font.mono }}>{timeAgo(n.created_at)}{n.actor_name ? ` by ${n.actor_name}` : ""}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
       <style>{`@media (max-width: 680px) { .proj-2col { grid-template-columns: 1fr !important; } }`}</style>
     </div>
   );

@@ -4,18 +4,19 @@ import { sql } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-// Fourth reuse of lead_activities (leads, opportunities, customers, now
-// projects) -- see JKTL_CODEBASE_MAP.md. Powers the Notes tab (Sheet 3).
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+// Fifth reuse of lead_activities (leads, opportunities, customers, projects,
+// now also project messages via type='message') -- see JKTL_CODEBASE_MAP.md.
+// Powers the Notes tab (Sheet 3, Batch 07) and the Communication/Activity
+// tabs (Sheets 7/8, Batch 08) -- same data, different type filter, no new table.
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!sql) return NextResponse.json({ activities: [] });
   const { id } = await params;
-  const activities = await sql`
-    SELECT a.*, s.name AS actor_name
-    FROM lead_activities a LEFT JOIN staff s ON s.id = a.actor_staff_id
-    WHERE a.project_id = ${id} ORDER BY a.created_at DESC
-  `;
+  const type = req.nextUrl.searchParams.get("type");
+  const activities = type
+    ? await sql`SELECT a.*, s.name AS actor_name FROM lead_activities a LEFT JOIN staff s ON s.id = a.actor_staff_id WHERE a.project_id = ${id} AND a.type = ${type} ORDER BY a.created_at DESC`
+    : await sql`SELECT a.*, s.name AS actor_name FROM lead_activities a LEFT JOIN staff s ON s.id = a.actor_staff_id WHERE a.project_id = ${id} ORDER BY a.created_at DESC`;
   return NextResponse.json({ activities });
 }
 
