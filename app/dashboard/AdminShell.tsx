@@ -38,6 +38,7 @@ const NAV: NavItem[] = [
   ]},
   { label: "Subscriptions", children: [
     { href: "/dashboard/clients", label: "Clients" },
+    { href: "/dashboard/clients/renewals", label: "Renewals & Expirations" },
     { href: "/dashboard/onboarding", label: "Onboarding" },
   ]},
   { label: "Customers", children: [

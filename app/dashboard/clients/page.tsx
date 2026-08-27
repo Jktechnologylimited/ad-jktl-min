@@ -52,10 +52,16 @@ export default function ClientsPage() {
           <h1 style={{ fontSize:"clamp(1.1rem,3vw,1.4rem)", fontWeight:700, color:"#fff", marginBottom:2 }}>Clients</h1>
           <p style={{ fontSize:"0.82rem", color:"rgba(226,232,240,0.4)" }}>All organisations on the Desk platform</p>
         </div>
-        <a href="/dashboard/clients/add"
-          style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"10px 20px", borderRadius:8, fontWeight:700, fontSize:"0.78rem", textTransform:"uppercase", letterSpacing:"0.08em", background:"#C9A84C", color:"#060E2A", textDecoration:"none", whiteSpace:"nowrap" }}>
-          + Add Existing Client
-        </a>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <a href="/dashboard/clients/renewals"
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 8, fontWeight: 700, fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.08em", background: "rgba(255,255,255,0.05)", border: "1.5px solid rgba(255,255,255,0.12)", color: "rgba(226,232,240,0.75)", textDecoration: "none", whiteSpace: "nowrap" }}>
+            Renewals &amp; Expirations
+          </a>
+          <a href="/dashboard/clients/add"
+            style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"10px 20px", borderRadius:8, fontWeight:700, fontSize:"0.78rem", textTransform:"uppercase", letterSpacing:"0.08em", background:"#C9A84C", color:"#060E2A", textDecoration:"none", whiteSpace:"nowrap" }}>
+            + Add Existing Client
+          </a>
+        </div>
       </div>
       <div style={{ display:"flex", gap:12, marginBottom:16, flexWrap:"wrap" }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search clients..."
@@ -100,20 +106,26 @@ export default function ClientsPage() {
                   <td style={td}><span style={badge(org.status==="active", org.status==="pending_payment")}>{(org.status as string).replace("_"," ")}</span></td>
                   <td style={{...td, fontSize:"0.75rem"}}>{fmtDate(org.created_at as string)}</td>
                   <td style={td}>
-                    {org.product === "schooldesk" ? (
-                      <div style={{ display:"flex", flexDirection:"column", gap:4, minWidth:140 }}>
-                        <button onClick={() => provision(org.id as string)}
-                          disabled={prov[org.id as string] === "Provisioning..."}
-                          style={{ padding:"6px 12px", borderRadius:6, fontSize:"0.7rem", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em", border:"none", cursor:"pointer", background: org.database_url ? "rgba(255,255,255,0.08)" : "#C9A84C", color: org.database_url ? "rgba(226,232,240,0.8)" : "#060E2A", whiteSpace:"nowrap" }}>
-                          {org.database_url ? "Re-provision" : "Provision"}
-                        </button>
-                        {prov[org.id as string] && (
-                          <span style={{ fontSize:"0.66rem", fontFamily:"'JetBrains Mono',monospace", color: (prov[org.id as string]||"").startsWith("Error") ? "#F87171" : "#34D399", wordBreak:"break-word" }}>
-                            {prov[org.id as string]}
-                          </span>
-                        )}
-                      </div>
-                    ) : <span style={{ fontSize:"0.7rem", color:"rgba(226,232,240,0.25)" }}>—</span>}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 140 }}>
+                      <a href={`/dashboard/clients/${org.id}/edit`}
+                        style={{ padding: "6px 12px", borderRadius: 6, fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", border: "1.5px solid rgba(255,255,255,0.12)", background: "none", color: "rgba(226,232,240,0.8)", textDecoration: "none", textAlign: "center" as const, whiteSpace: "nowrap" }}>
+                        Edit
+                      </a>
+                      {org.product === "schooldesk" && (
+                        <>
+                          <button onClick={() => provision(org.id as string)}
+                            disabled={prov[org.id as string] === "Provisioning..."}
+                            style={{ padding:"6px 12px", borderRadius:6, fontSize:"0.7rem", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em", border:"none", cursor:"pointer", background: org.database_url ? "rgba(255,255,255,0.08)" : "#C9A84C", color: org.database_url ? "rgba(226,232,240,0.8)" : "#060E2A", whiteSpace:"nowrap" }}>
+                            {org.database_url ? "Re-provision" : "Provision"}
+                          </button>
+                          {prov[org.id as string] && (
+                            <span style={{ fontSize:"0.66rem", fontFamily:"'JetBrains Mono',monospace", color: (prov[org.id as string]||"").startsWith("Error") ? "#F87171" : "#34D399", wordBreak:"break-word" }}>
+                              {prov[org.id as string]}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
